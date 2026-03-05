@@ -1,0 +1,84 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Chore Tracker Setup",
+        "description": "Choose where to store your tasks.",
+        "data": {
+          "backend": "Backend"
+        }
+      },
+      "m365": {
+        "title": "Microsoft 365 Configuration",
+        "description": "Enter your Azure App Registration credentials. See documentation for setup instructions.",
+        "data": {
+          "m365_client_id": "Client ID",
+          "m365_tenant_id": "Tenant ID",
+          "m365_client_secret": "Client Secret",
+          "m365_list_id": "Task List ID (optional)"
+        }
+      },
+      "m365_list": {
+        "title": "Select Task List",
+        "description": "Choose which Microsoft To Do list to sync.",
+        "data": {
+          "m365_list_id": "Task List"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Cannot connect to Microsoft 365",
+      "invalid_m365_credentials": "Invalid credentials",
+      "unknown": "Unexpected error"
+    },
+    "abort": {
+      "already_configured": "Chore Tracker is already configured"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Chore Tracker Options",
+        "data": {
+          "scan_interval": "Sync interval (minutes)",
+          "backend": "Backend"
+        }
+      }
+    }
+  },
+  "services": {
+    "complete_task": {
+      "name": "Complete Task",
+      "description": "Mark a task as completed.",
+      "fields": {
+        "task_id": {"name": "Task ID", "description": "The ID of the task to complete"},
+        "completed_by": {"name": "Completed By", "description": "Username of who completed it"}
+      }
+    },
+    "complete_by_nfc": {
+      "name": "Complete Task by NFC",
+      "description": "Complete a task using an NFC tag ID.",
+      "fields": {
+        "nfc_tag_id": {"name": "NFC Tag ID", "description": "The NFC tag ID scanned"},
+        "completed_by": {"name": "Completed By", "description": "Username of who scanned it"}
+      }
+    },
+    "add_task": {
+      "name": "Add Task",
+      "description": "Create a new chore or task.",
+      "fields": {
+        "name": {"name": "Name", "description": "Task name"},
+        "description": {"name": "Description", "description": "Optional description"},
+        "category": {"name": "Category", "description": "Task category"},
+        "priority": {"name": "Priority", "description": "low, medium, high, or urgent"},
+        "due_date": {"name": "Due Date", "description": "Due date (YYYY-MM-DD)"},
+        "recurrence": {"name": "Recurrence", "description": "Repeat schedule"},
+        "recurrence_day": {"name": "Recurrence Day", "description": "Day of week (0=Monday)"},
+        "recurrence_week_position": {"name": "Week Position", "description": "Week position (1-4 or -1 for last)"},
+        "assigned_to": {"name": "Assigned To", "description": "List of HA usernames"},
+        "nfc_tag_id": {"name": "NFC Tag ID", "description": "Associated NFC tag"},
+        "notes": {"name": "Notes", "description": "Additional notes"}
+      }
+    }
+  }
+}
