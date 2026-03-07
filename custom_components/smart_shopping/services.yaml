@@ -1,0 +1,193 @@
+add_item:
+  name: Add Shopping Item
+  description: Add an item to the smart shopping list
+  fields:
+    name:
+      name: Item Name
+      description: Name of the item to add
+      required: true
+      example: "Milk"
+      selector:
+        text:
+    category:
+      name: Category
+      description: Category for the item
+      required: false
+      default: Other
+      example: "Dairy"
+      selector:
+        text:
+    quantity:
+      name: Quantity
+      description: Number of items needed
+      required: false
+      default: 1
+      selector:
+        number:
+          min: 1
+          max: 999
+    unit:
+      name: Unit
+      description: Unit of measure (kg, L, pcs, etc.)
+      required: false
+      example: "kg"
+      selector:
+        text:
+    image_url:
+      name: Image URL
+      description: URL to an image of the item
+      required: false
+      selector:
+        text:
+    store:
+      name: Store
+      description: Preferred store for this item
+      required: false
+      selector:
+        text:
+    notes:
+      name: Notes
+      description: Additional notes for the item
+      required: false
+      selector:
+        text:
+
+remove_item:
+  name: Remove Shopping Item
+  description: Remove an item from the shopping list
+  fields:
+    name:
+      name: Item Name
+      description: Name of the item to remove
+      required: true
+      selector:
+        text:
+
+check_item:
+  name: Check Off Item
+  description: Mark an item as purchased/checked
+  fields:
+    name:
+      name: Item Name
+      description: Name of the item to check
+      required: true
+      selector:
+        text:
+
+uncheck_item:
+  name: Uncheck Item
+  description: Mark an item as needed again
+  fields:
+    name:
+      name: Item Name
+      description: Name of the item to uncheck
+      required: true
+      selector:
+        text:
+
+clear_checked:
+  name: Clear Checked Items
+  description: Remove all checked/purchased items from the list
+
+add_store:
+  name: Add Store
+  description: Add a new store to the store list
+  fields:
+    name:
+      name: Store Name
+      required: true
+      selector:
+        text:
+    latitude:
+      name: Latitude
+      description: GPS latitude for geofencing
+      required: false
+      selector:
+        number:
+          min: -90
+          max: 90
+          step: 0.000001
+    longitude:
+      name: Longitude
+      description: GPS longitude for geofencing
+      required: false
+      selector:
+        number:
+          min: -180
+          max: 180
+          step: 0.000001
+    radius:
+      name: Radius (meters)
+      description: Geofence radius in meters
+      required: false
+      default: 100
+      selector:
+        number:
+          min: 10
+          max: 1000
+    icon:
+      name: Icon
+      description: MDI icon name
+      required: false
+      default: "mdi:store"
+      selector:
+        text:
+
+add_category:
+  name: Add Category
+  description: Add a new item category
+  fields:
+    name:
+      name: Category Name
+      required: true
+      selector:
+        text:
+    icon:
+      name: Icon
+      required: false
+      default: "mdi:tag"
+      selector:
+        text:
+    color:
+      name: Color
+      required: false
+      default: "#607D8B"
+      selector:
+        color_rgb:
+
+sync_todo:
+  name: Sync to Todo List
+  description: Force sync the shopping list to the configured Todo entity
+
+update_stores:
+  name: Update Stores List
+  description: Replace the entire stores list (used internally by the card)
+  fields:
+    stores:
+      name: Stores
+      description: Full list of store objects
+      required: true
+      selector:
+        object:
+
+update_categories:
+  name: Update Categories List
+  description: Replace the entire categories list (used internally by the card)
+  fields:
+    categories:
+      name: Categories
+      description: Full list of category objects
+      required: true
+      selector:
+        object:
+
+update_items:
+  name: Update Items List
+  description: Replace the entire items list (used internally by the card)
+  fields:
+    items:
+      name: Items
+      description: Full list of shopping item objects
+      required: true
+      selector:
+        object:

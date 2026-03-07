@@ -1,0 +1,85 @@
+# ============================================================
+# Smart Shopping - Home Assistant Automation Examples
+# Copy these into your automations.yaml or via the UI
+# ============================================================
+
+# Automation 1: Trigger shopping list popup when near a store
+# This uses HA zones + person entity for server-side geofencing
+# (Complements the client-side geofencing in the card)
+- id: smart_shopping_near_store
+  alias: "Smart Shopping - Near Store Alert"
+  description: "Fire an event when a person enters a zone matching a store"
+  trigger:
+    - platform: zone
+      entity_id: person.YOUR_PERSON   # <-- Change this to your person entity
+      zone: zone.grocery_store         # <-- Change this to your zone entity
+      event: enter
+  condition:
+    - condition: template
+      value_template: >
+        {{ state_attr('sensor.shopping_list', 'unchecked_count') | int > 0 }}
+  action:
+    - event: smart_shopping_near_store
+      event_data:
+        store_name: "Grocery Store"    # <-- Match your store name
+        zone: "{{ trigger.zone }}"
+    - service: notify.mobile_app_YOUR_PHONE   # <-- Your notification service
+      data:
+        title: "🛒 Shopping Reminder"
+        message: >
+          You're near {{ trigger.zone }}! 
+          You have {{ state_attr('sensor.shopping_list', 'unchecked_count') }} items on your list.
+        data:
+          tag: "shopping-reminder"
+          url: "/lovelace/shopping"   # <-- Your dashboard path
+          actions:
+            - action: "VIEW_LIST"
+              title: "View List"
+
+
+# Automation 2: Auto-sync shopping list to Todo on item add
+- id: smart_shopping_sync_todo
+  alias: "Smart Shopping - Auto Sync to Todo"
+  description: "Sync shopping list changes to the Todo entity"
+  trigger:
+    - platform: event
+      event_type: smart_shopping_list_updated
+  action:
+    - service: smart_shopping.sync_todo
+      data: {}
+
+
+# Automation 3: Daily reminder if list has items
+- id: smart_shopping_daily_reminder
+  alias: "Smart Shopping - Daily Reminder"
+  description: "Morning reminder if there are items on the list"
+  trigger:
+    - platform: time
+      at: "08:00:00"
+  condition:
+    - condition: template
+      value_template: >
+        {{ state_attr('sensor.shopping_list', 'unchecked_count') | int > 0 }}
+  action:
+    - service: notify.mobile_app_YOUR_PHONE
+      data:
+        title: "🛒 Shopping List"
+        message: >
+          You have {{ state_attr('sensor.shopping_list', 'unchecked_count') }} items 
+          on your shopping list today.
+
+
+# ============================================================
+# Zone configuration example (configuration.yaml or zone UI)
+# ============================================================
+# zone:
+#   - name: Grocery Store
+#     latitude: 51.5074
+#     longitude: -0.1278
+#     radius: 100
+#     icon: mdi:cart
+#   - name: Pharmacy
+#     latitude: 51.5080
+#     longitude: -0.1290
+#     radius: 80
+#     icon: mdi:pharmacy

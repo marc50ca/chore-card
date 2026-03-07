@@ -1,6 +1,7 @@
 {
-  "name": "Chore Tracker",
+  "name": "Smart Shopping",
   "render_readme": true,
-  "homeassistant": "2024.1.0",
-  "category": "integration"
+  "domains": ["sensor", "todo"],
+  "iot_class": "local_push",
+  "homeassistant": "2024.1.0"
 }
