@@ -70,9 +70,8 @@ Microsoft To Do requires **delegated** (user-based) OAuth — not application/cl
    - **Supported account types**: *Accounts in this organizational directory only* (single tenant) — or *Personal Microsoft accounts only* if you use Outlook.com/Hotmail
    - **Redirect URI**: Select **Web** and enter:
      ```
-     https://YOUR-HA-URL/auth/external_callback
+     https://homeassistant.peterborough.madasc.com:8123/api/chore_tracker/oauth_callback
      ```
-     Replace `YOUR-HA-URL` with your Home Assistant external URL (e.g. `https://homeassistant.local:8123`)
 4. Click **Register**
 5. Copy the **Application (client) ID** — you'll need this
 6. Copy the **Directory (tenant) ID** — you'll need this
