@@ -1,0 +1,51 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Chore Tracker Setup",
+        "description": "Choose where to store your tasks.",
+        "data": { "backend": "Storage backend" }
+      },
+      "m365_creds": {
+        "title": "Microsoft 365 — App credentials",
+        "description": "Enter your Azure App Registration details.\n\n**Redirect URI to register in Azure:**\n`{redirect_info}`\n\nSee the README for full setup instructions.",
+        "data": {
+          "m365_client_id":     "Application (Client) ID",
+          "m365_tenant_id":     "Directory (Tenant) ID",
+          "m365_client_secret": "Client Secret"
+        }
+      },
+      "m365_oauth": {
+        "title": "Sign in to Microsoft",
+        "description": "Click **Open Microsoft login** to sign in with your Microsoft 365 account and grant permission to access your To Do tasks."
+      },
+      "m365_token": {
+        "title": "Connecting…",
+        "description": "Exchanging tokens with Microsoft."
+      },
+      "m365_list": {
+        "title": "Select To Do List",
+        "description": "Choose which Microsoft To Do list to sync with Chore Tracker.",
+        "data": { "m365_list_id": "Task List" }
+      }
+    },
+    "error": {
+      "auth_failed":    "Microsoft login was cancelled or failed. Please try again.",
+      "no_auth_code":   "No authorisation code received from Microsoft.",
+      "token_failed":   "Failed to exchange code for tokens. Check your Client Secret.",
+      "cannot_connect": "Cannot connect to Microsoft 365.",
+      "unknown":        "Unexpected error."
+    },
+    "abort": {
+      "already_configured": "Chore Tracker is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Chore Tracker Options",
+        "data": { "scan_interval": "Microsoft 365 sync interval (minutes)" }
+      }
+    }
+  }
+}
