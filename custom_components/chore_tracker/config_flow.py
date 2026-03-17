@@ -24,7 +24,10 @@ from .const import (
     CONF_M365_CLIENT_SECRET,
     CONF_M365_LIST_ID,
     CONF_M365_TENANT_ID,
+    CONF_REMINDER_DAYS,
+    CONF_REMINDER_ENABLED,
     CONF_SCAN_INTERVAL,
+    DEFAULT_REMINDER_DAYS,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
 )
@@ -369,12 +372,21 @@ class ChoreTrackerOptionsFlow(config_entries.OptionsFlow):
         if user_input is not None:
             return self.async_create_entry(title="", data=user_input)
 
+        opts = self.config_entry.options
         return self.async_show_form(
             step_id="init",
             data_schema=vol.Schema({
                 vol.Required(
                     CONF_SCAN_INTERVAL,
-                    default=self.config_entry.options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
+                    default=opts.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
                 ): vol.All(vol.Coerce(int), vol.Range(min=1, max=1440)),
+                vol.Required(
+                    CONF_REMINDER_ENABLED,
+                    default=opts.get(CONF_REMINDER_ENABLED, True),
+                ): bool,
+                vol.Required(
+                    CONF_REMINDER_DAYS,
+                    default=opts.get(CONF_REMINDER_DAYS, DEFAULT_REMINDER_DAYS),
+                ): vol.All(vol.Coerce(int), vol.Range(min=1, max=30)),
             }),
         )

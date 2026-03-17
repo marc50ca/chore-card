@@ -106,6 +106,11 @@ STATUSES = [STATUS_PENDING, STATUS_IN_PROGRESS, STATUS_COMPLETED, STATUS_TEMP_CO
 
 DEFAULT_TEMP_COMPLETE_HOURS = 24   # reset after this many hours if not set per-call
 
+# Reminders
+CONF_REMINDER_ENABLED = "reminder_enabled"
+CONF_REMINDER_DAYS    = "reminder_days"       # days overdue before notifying
+DEFAULT_REMINDER_DAYS = 1                     # notify when 1+ day overdue
+
 # Storage
 STORAGE_KEY = f"{DOMAIN}.tasks"
 STORAGE_VERSION = 1

@@ -44,7 +44,11 @@
     "step": {
       "init": {
         "title": "Chore Tracker Options",
-        "data": { "scan_interval": "Microsoft 365 sync interval (minutes)" }
+        "data": {
+          "scan_interval":      "Microsoft 365 sync interval (minutes)",
+          "reminder_enabled":   "Enable overdue reminders",
+          "reminder_days":      "Days overdue before reminder (1–30)"
+        }
       }
     }
   }

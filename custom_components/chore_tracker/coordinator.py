@@ -46,6 +46,9 @@ from .const import (
     STATUS_PENDING,
     STATUS_TEMP_COMPLETE,
     DEFAULT_TEMP_COMPLETE_HOURS,
+    CONF_REMINDER_ENABLED,
+    CONF_REMINDER_DAYS,
+    DEFAULT_REMINDER_DAYS,
     STORAGE_KEY,
     STORAGE_VERSION,
 )
@@ -213,6 +216,7 @@ class ChoreTrackerCoordinator(DataUpdateCoordinator):
             try:
                 await self._check_overdue_tasks()
                 await self._check_due_soon()
+                await self._send_reminders()
             except Exception as check_err:
                 _LOGGER.warning("Task check failed (non-fatal): %s", check_err)
             return self._get_state()
@@ -352,6 +356,88 @@ class ChoreTrackerCoordinator(DataUpdateCoordinator):
                         EVENT_TASK_DUE_SOON,
                         {"task_id": task["id"], "name": task["name"], "due_date": str(due)},
                     )
+
+    async def _send_reminders(self) -> None:
+        """
+        Send HA persistent notifications for tasks that have been overdue
+        for at least CONF_REMINDER_DAYS days and haven't been reminded today.
+        """
+        options  = self.config_entry.options if self.config_entry else {}
+        enabled  = options.get(CONF_REMINDER_ENABLED, True)
+        if not enabled:
+            return
+
+        threshold_days = int(options.get(CONF_REMINDER_DAYS, DEFAULT_REMINDER_DAYS))
+        today          = date.today()
+        cutoff         = today - timedelta(days=threshold_days - 1)   # overdue on or before this date
+        today_str      = today.isoformat()
+        changed        = False
+        remind_tasks   = []
+
+        for task in self._tasks.values():
+            if task.get("status") not in (STATUS_PENDING, STATUS_OVERDUE):
+                continue
+            due = task.get("due_date")
+            if not due:
+                continue
+            if isinstance(due, str):
+                due = date.fromisoformat(due)
+            if due > cutoff:
+                continue   # not overdue enough yet
+
+            # Only remind once per day per task
+            last_reminded = task.get("last_reminded_date", "")
+            if last_reminded == today_str:
+                continue
+
+            days_overdue = (today - due).days
+            remind_tasks.append((task, days_overdue))
+            task["last_reminded_date"] = today_str
+            changed = True
+
+        if remind_tasks:
+            # Build a single grouped notification listing all overdue tasks
+            lines = []
+            for task, days_overdue in sorted(remind_tasks, key=lambda x: -x[1]):
+                cat   = task.get("category", "")
+                asgn  = ", ".join(task.get("assigned_to") or [])
+                label = f"**{task['name']}**"
+                if cat:
+                    label += f" ({cat})"
+                label += f" — {days_overdue} day{'s' if days_overdue != 1 else ''} overdue"
+                if asgn:
+                    label += f" · assigned: {asgn}"
+                lines.append(f"- {label}")
+
+            msg = (
+                f"⚠️ **{len(remind_tasks)} chore{'s' if len(remind_tasks) > 1 else ''} "
+                f"need{'s' if len(remind_tasks) == 1 else ''} attention:**\n\n"
+                + "\n".join(lines)
+            )
+
+            from homeassistant.components.persistent_notification import async_create as pn_create
+            pn_create(
+                self.hass,
+                message        = msg,
+                title          = "🧹 Chore Tracker Reminder",
+                notification_id= f"{DOMAIN}_reminder",   # replaces previous, no spam
+            )
+
+            # Also fire an event so automations / mobile push can react
+            self.hass.bus.async_fire(
+                f"{DOMAIN}_reminder",
+                {
+                    "overdue_count": len(remind_tasks),
+                    "tasks": [
+                        {"id": t["id"], "name": t["name"], "days_overdue": d}
+                        for t, d in remind_tasks
+                    ],
+                },
+            )
+            _LOGGER.info("Chore Tracker: sent reminder for %d overdue task(s)", len(remind_tasks))
+
+        if changed:
+            await self._save()
 
     async def _save(self) -> None:
         """Persist tasks to storage."""
