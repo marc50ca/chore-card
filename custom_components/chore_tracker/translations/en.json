@@ -47,7 +47,8 @@
         "data": {
           "scan_interval":      "Microsoft 365 sync interval (minutes)",
           "reminder_enabled":   "Enable overdue reminders",
-          "reminder_days":      "Days overdue before reminder (1–30)"
+          "reminder_days":      "Days overdue before sending reminder (1–30)",
+          "mobile_notify_service": "iPhone notify service (e.g. notify.mobile_app_marcs_iphone_14)"
         }
       }
     }

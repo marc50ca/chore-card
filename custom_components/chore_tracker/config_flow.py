@@ -24,9 +24,11 @@ from .const import (
     CONF_M365_CLIENT_SECRET,
     CONF_M365_LIST_ID,
     CONF_M365_TENANT_ID,
+    CONF_MOBILE_NOTIFY,
     CONF_REMINDER_DAYS,
     CONF_REMINDER_ENABLED,
     CONF_SCAN_INTERVAL,
+    DEFAULT_MOBILE_NOTIFY,
     DEFAULT_REMINDER_DAYS,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
@@ -388,5 +390,9 @@ class ChoreTrackerOptionsFlow(config_entries.OptionsFlow):
                     CONF_REMINDER_DAYS,
                     default=opts.get(CONF_REMINDER_DAYS, DEFAULT_REMINDER_DAYS),
                 ): vol.All(vol.Coerce(int), vol.Range(min=1, max=30)),
+                vol.Optional(
+                    CONF_MOBILE_NOTIFY,
+                    default=opts.get(CONF_MOBILE_NOTIFY, DEFAULT_MOBILE_NOTIFY),
+                ): str,
             }),
         )

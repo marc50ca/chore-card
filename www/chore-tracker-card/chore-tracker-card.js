@@ -910,4 +910,4 @@ window.customCards = window.customCards||[];
 if (!window.customCards.find(c=>c.type==="chore-tracker-card"))
   window.customCards.push({type:"chore-tracker-card",name:"Chore Tracker",
     description:"Chores with NFC, M365 sync, recurrence & assignment.",preview:true});
-console.info("%c CHORE-TRACKER %c v4.1 ","background:#3b82f6;color:#fff;padding:2px 6px;border-radius:4px 0 0 4px;font-weight:700","background:#1e2130;color:#60a5fa;padding:2px 6px;border-radius:0 4px 4px 0;font-weight:600");
+console.info("%c CHORE-TRACKER %c v4.2 ","background:#3b82f6;color:#fff;padding:2px 6px;border-radius:4px 0 0 4px;font-weight:700","background:#1e2130;color:#60a5fa;padding:2px 6px;border-radius:0 4px 4px 0;font-weight:600");

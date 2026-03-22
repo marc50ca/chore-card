@@ -517,7 +517,7 @@ if (!window.customCards.find(c => c.type === "chore-tracker-summary-card"))
   });
 
 console.info(
-  "%c CHORE-TRACKER-SUMMARY %c v2.0 ",
+  "%c CHORE-TRACKER-SUMMARY %c v2.1 ",
   "background:#6366f1;color:#fff;padding:2px 6px;border-radius:4px 0 0 4px;font-weight:700",
   "background:#181d2a;color:#818cf8;padding:2px 6px;border-radius:0 4px 4px 0;font-weight:600"
 );

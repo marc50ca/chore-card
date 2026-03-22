@@ -48,7 +48,9 @@ from .const import (
     DEFAULT_TEMP_COMPLETE_HOURS,
     CONF_REMINDER_ENABLED,
     CONF_REMINDER_DAYS,
+    CONF_MOBILE_NOTIFY,
     DEFAULT_REMINDER_DAYS,
+    DEFAULT_MOBILE_NOTIFY,
     STORAGE_KEY,
     STORAGE_VERSION,
 )
@@ -359,20 +361,22 @@ class ChoreTrackerCoordinator(DataUpdateCoordinator):
 
     async def _send_reminders(self) -> None:
         """
-        Send HA persistent notifications for tasks that have been overdue
-        for at least CONF_REMINDER_DAYS days and haven't been reminded today.
+        Send HA persistent notification + iPhone push for tasks overdue by
+        CONF_REMINDER_DAYS or more.  Fires at most once per task per day.
         """
-        options  = self.config_entry.options if self.config_entry else {}
-        enabled  = options.get(CONF_REMINDER_ENABLED, True)
+        options        = self.config_entry.options if self.config_entry else {}
+        enabled        = options.get(CONF_REMINDER_ENABLED, True)
         if not enabled:
             return
 
-        threshold_days = int(options.get(CONF_REMINDER_DAYS, DEFAULT_REMINDER_DAYS))
-        today          = date.today()
-        cutoff         = today - timedelta(days=threshold_days - 1)   # overdue on or before this date
-        today_str      = today.isoformat()
-        changed        = False
-        remind_tasks   = []
+        threshold_days  = int(options.get(CONF_REMINDER_DAYS, DEFAULT_REMINDER_DAYS))
+        mobile_service  = options.get(CONF_MOBILE_NOTIFY, DEFAULT_MOBILE_NOTIFY).strip()
+        today           = date.today()
+        # task must have been due ON or BEFORE this date to qualify
+        cutoff          = today - timedelta(days=threshold_days)
+        today_str       = today.isoformat()
+        changed         = False
+        remind_tasks: list[tuple[dict, int]] = []
 
         for task in self._tasks.values():
             if task.get("status") not in (STATUS_PENDING, STATUS_OVERDUE):
@@ -385,9 +389,8 @@ class ChoreTrackerCoordinator(DataUpdateCoordinator):
             if due > cutoff:
                 continue   # not overdue enough yet
 
-            # Only remind once per day per task
-            last_reminded = task.get("last_reminded_date", "")
-            if last_reminded == today_str:
+            # Only remind once per calendar day per task
+            if task.get("last_reminded_date") == today_str:
                 continue
 
             days_overdue = (today - due).days
@@ -395,46 +398,100 @@ class ChoreTrackerCoordinator(DataUpdateCoordinator):
             task["last_reminded_date"] = today_str
             changed = True
 
-        if remind_tasks:
-            # Build a single grouped notification listing all overdue tasks
-            lines = []
-            for task, days_overdue in sorted(remind_tasks, key=lambda x: -x[1]):
-                cat   = task.get("category", "")
-                asgn  = ", ".join(task.get("assigned_to") or [])
-                label = f"**{task['name']}**"
-                if cat:
-                    label += f" ({cat})"
-                label += f" — {days_overdue} day{'s' if days_overdue != 1 else ''} overdue"
-                if asgn:
-                    label += f" · assigned: {asgn}"
-                lines.append(f"- {label}")
+        if not remind_tasks:
+            if changed:
+                await self._save()
+            return
 
-            msg = (
-                f"⚠️ **{len(remind_tasks)} chore{'s' if len(remind_tasks) > 1 else ''} "
-                f"need{'s' if len(remind_tasks) == 1 else ''} attention:**\n\n"
-                + "\n".join(lines)
-            )
+        # Sort worst-overdue first
+        remind_tasks.sort(key=lambda x: -x[1])
 
-            from homeassistant.components.persistent_notification import async_create as pn_create
-            pn_create(
-                self.hass,
-                message        = msg,
-                title          = "🧹 Chore Tracker Reminder",
-                notification_id= f"{DOMAIN}_reminder",   # replaces previous, no spam
-            )
+        # ── HA persistent notification (shows in the bell icon) ──────────────
+        lines = []
+        for task, days_overdue in remind_tasks:
+            cat  = task.get("category", "")
+            asgn = ", ".join(task.get("assigned_to") or [])
+            line = f"**{task['name']}**"
+            if cat:
+                line += f" ({cat})"
+            line += f" — {days_overdue} day{'s' if days_overdue != 1 else ''} overdue"
+            if asgn:
+                line += f" · {asgn}"
+            lines.append(f"- {line}")
 
-            # Also fire an event so automations / mobile push can react
-            self.hass.bus.async_fire(
-                f"{DOMAIN}_reminder",
-                {
-                    "overdue_count": len(remind_tasks),
-                    "tasks": [
-                        {"id": t["id"], "name": t["name"], "days_overdue": d}
-                        for t, d in remind_tasks
-                    ],
-                },
-            )
-            _LOGGER.info("Chore Tracker: sent reminder for %d overdue task(s)", len(remind_tasks))
+        n    = len(remind_tasks)
+        msg  = (
+            f"⚠️ **{n} chore{'s' if n > 1 else ''} "
+            f"need{'s' if n == 1 else ''} attention:**\n\n"
+            + "\n".join(lines)
+        )
+
+        from homeassistant.components.persistent_notification import async_create as _pn
+        _pn(
+            self.hass,
+            message         = msg,
+            title           = "🧹 Chore Tracker Reminder",
+            notification_id = f"{DOMAIN}_reminder",  # replaces previous — no inbox spam
+        )
+
+        # ── iPhone push notification ─────────────────────────────────────────
+        if mobile_service:
+            # Build a concise push message
+            if n == 1:
+                task0, d0 = remind_tasks[0]
+                push_title   = f"🧹 Chore overdue: {task0['name']}"
+                push_message = (
+                    f"{task0['name']} has been overdue for {d0} day{'s' if d0 != 1 else ''}."
+                    f" Open the Chore Tracker to complete it."
+                )
+            else:
+                names = ", ".join(t['name'] for t, _ in remind_tasks[:3])
+                extra = f" +{n - 3} more" if n > 3 else ""
+                push_title   = f"🧹 {n} chores overdue"
+                push_message = f"{names}{extra} — all overdue by {threshold_days}+ days."
+
+            # Split "domain.service_name" → domain + service
+            parts = mobile_service.split(".", 1)
+            if len(parts) == 2:
+                notify_domain, notify_service = parts
+            else:
+                notify_domain, notify_service = "notify", mobile_service
+
+            try:
+                await self.hass.services.async_call(
+                    notify_domain,
+                    notify_service,
+                    {
+                        "title":   push_title,
+                        "message": push_message,
+                        "data": {
+                            "push": {"sound": "default"},
+                            "tag":  f"{DOMAIN}_reminder",  # replaces previous iOS notification
+                        },
+                    },
+                    blocking=False,
+                )
+                _LOGGER.info(
+                    "Chore Tracker: sent iPhone push to %s for %d overdue task(s)",
+                    mobile_service, n,
+                )
+            except Exception as err:
+                _LOGGER.warning(
+                    "Chore Tracker: could not send push to %s: %s", mobile_service, err
+                )
+
+        # ── HA event (for custom automations) ────────────────────────────────
+        self.hass.bus.async_fire(
+            f"{DOMAIN}_reminder",
+            {
+                "overdue_count": n,
+                "tasks": [
+                    {"id": t["id"], "name": t["name"], "days_overdue": d}
+                    for t, d in remind_tasks
+                ],
+            },
+        )
+        _LOGGER.info("Chore Tracker: reminder sent for %d overdue task(s)", n)
 
         if changed:
             await self._save()

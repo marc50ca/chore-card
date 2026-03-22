@@ -1,210 +1,197 @@
 # 🗂️ Chore Tracker for Home Assistant
 
-A full-featured HACS integration and Lovelace dashboard card for tracking household chores and tasks — with Microsoft 365 sync, iPhone NFC tag support, recurrence scheduling, and per-user assignment.
-
-[![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/hacs/integration)
+A full-featured HACS integration and Lovelace dashboard card for tracking household chores — with Microsoft 365 sync, iPhone NFC support, recurrence scheduling, temporary completion, and push notifications.
 
 ---
 
-## ✨ Features
+## 📦 Installation
 
-- **Dual backend**: Store tasks locally in HA or sync with **Microsoft 365 To Do**
-- **NFC tag support**: Complete tasks by tapping an NFC tag with your iPhone
-- **Flexible recurrence**: Daily, Weekly, Bi-weekly, Monthly, Bi-monthly, Yearly, every specific weekday, Nth weekday of month (e.g. 3rd Wednesday, last Friday)
-- **Priority levels**: Low, Medium, High, Urgent
-- **Categories**: Cleaning, Cooking, Laundry, Shopping, Yard, Maintenance, Pets, Childcare, Finance, Health, custom
-- **Assignment**: Assign tasks to existing Home Assistant users
-- **Beautiful Lovelace card** with real-time WebSocket updates, filtering, search, sort
-- **Sensor entities**: Overdue, Due Today, Pending, Completed Today stats
-- **HA Todo integration**: Native To-do list platform support
-- **Automation events**: Fire events on completion, overdue, and due-soon
+### Step 1 — Copy integration files
 
----
+Unzip the package and copy into your HA config directory:
 
-## 📦 Installation via HACS
-
-1. Open **HACS** in your Home Assistant
-2. Go to **Integrations** → ⋮ menu → **Custom repositories**
-3. Add `https://github.com/your-repo/chore-tracker-ha` with category **Integration**
-4. Install and restart Home Assistant
-
-### Lovelace Card
-
-Copy `www/chore-tracker-card/chore-tracker-card.js` to `config/www/chore-tracker-card/` then add the resource:
-
-**Settings → Dashboards → ⋮ → Resources → Add resource:**
 ```
-/local/chore-tracker-card/chore-tracker-card.js
+config/
+├── custom_components/
+│   └── chore_tracker/        ← copy this entire folder
+└── www/
+    └── chore-tracker-card/   ← copy this entire folder
+        ├── chore-tracker-card.js
+        └── chore-tracker-summary-card.js
 ```
-Type: **JavaScript module**
 
-Add the card to your dashboard:
+### Step 2 — Restart Home Assistant (full restart required)
+
+A full restart — not just a reload — is needed so HA registers the integration and sensors.
+
+**Settings → System → Restart → Restart Home Assistant**
+
+Do not skip this. The card will not appear until HA has loaded the integration at least once.
+
+### Step 3 — Add Lovelace resources
+
+**Settings → Dashboards → ⋮ menu (top right) → Resources → Add resource**
+
+Add **two** resources, both as type **JavaScript module**:
+
+| URL | Type |
+|-----|------|
+| `/local/chore-tracker-card/chore-tracker-card.js` | JavaScript module |
+| `/local/chore-tracker-card/chore-tracker-summary-card.js` | JavaScript module |
+
+### Step 4 — Hard refresh your browser
+
+After adding resources, the browser must load the new JS files fresh.
+
+- **Desktop**: `Ctrl + Shift + R` (Windows/Linux) or `Cmd + Shift + R` (Mac)
+- **Mobile**: Close and reopen the browser tab, or clear site data
+- **HA App**: Force-close the app and reopen
+
+> ⚠️ **Card not appearing?** This is almost always a caching issue. Try:
+> 1. Hard refresh (above)
+> 2. Check the resource URL is exactly `/local/chore-tracker-card/chore-tracker-card.js`
+> 3. Open browser DevTools → Console tab — look for any red JS errors
+> 4. Confirm the file exists at `config/www/chore-tracker-card/chore-tracker-card.js`
+> 5. If you updated the file, append `?v=2` to the resource URL to force a new cache key
+
+### Step 5 — Add the integration
+
+**Settings → Devices & Services → Add Integration → search "Chore Tracker"**
+
+Choose **Local** (stores tasks in HA) or **Microsoft 365** (syncs with To Do).
+
+### Step 6 — Add cards to your dashboard
+
+**Dashboard → Edit → Add card → search "Chore Tracker"**
+
+Main card:
 ```yaml
 type: custom:chore-tracker-card
-title: Chore Tracker
+title: Household Chores
 show_stats: true
 show_header: true
+layout: normal        # compact | normal | large | wide
+max_height: 580
 ```
 
----
-
-## ⚙️ Configuration
-
-### Local Storage (default)
-
-1. **Settings → Devices & Services → Add Integration**
-2. Search **Chore Tracker** → select **Local** → Done
+Summary card (horizontal):
+```yaml
+type: custom:chore-tracker-summary-card
+title: Chore Summary
+show_sparkline: true
+max_tasks: 8
+accent: "#3b82f6"
+```
 
 ---
 
 ## 🔷 Microsoft 365 Setup
 
-Microsoft To Do requires **delegated** (user-based) OAuth — not application/client credentials. This means you must complete a one-time browser login to authorise the integration.
+### 1 — Create Azure App Registration
 
-### Step 1 — Create an Azure App Registration
+1. Go to [portal.azure.com](https://portal.azure.com) → **Azure Active Directory → App registrations → New registration**
+2. Name: anything (e.g. `HA Chore Tracker`)
+3. Supported account types: *Accounts in this organizational directory only* (or personal if using Outlook.com)
+4. Redirect URI: **Web** platform →
+   ```
+   https://homeassistant.peterborough.madasc.com:8123/api/chore_tracker/oauth_callback
+   ```
+5. Click **Register** — copy the **Application (Client) ID** and **Directory (Tenant) ID**
 
-1. Go to [portal.azure.com](https://portal.azure.com) and sign in with your Microsoft 365 account
-2. Navigate to **Azure Active Directory → App registrations → New registration**
-3. Fill in:
-   - **Name**: `Home Assistant Chore Tracker` (or anything)
-   - **Supported account types**: *Accounts in this organizational directory only* (single tenant) — or *Personal Microsoft accounts only* if you use Outlook.com/Hotmail
-   - **Redirect URI**: Select **Web** and enter:
-     ```
-     https://homeassistant.peterborough.madasc.com:8123/api/chore_tracker/oauth_callback
-     ```
-4. Click **Register**
-5. Copy the **Application (client) ID** — you'll need this
-6. Copy the **Directory (tenant) ID** — you'll need this
+### 2 — Add API Permissions (delegated only)
 
-### Step 2 — Add API Permissions (Delegated only)
+**API permissions → Add a permission → Microsoft Graph → Delegated permissions:**
 
-1. In your App Registration, go to **API permissions → Add a permission → Microsoft Graph**
-2. Select **Delegated permissions** (NOT Application permissions)
-3. Add these permissions:
-   - `Tasks.ReadWrite` — read and write Microsoft To Do tasks
-   - `offline_access` — required for refresh tokens so you don't need to re-login
-   - `User.Read` — read user profile (needed to identify the signed-in user)
-4. Click **Add permissions**
-5. Click **Grant admin consent** (if you are a tenant admin) — or have your admin do this
+| Permission | Purpose |
+|---|---|
+| `Tasks.ReadWrite` | Read and write To Do tasks |
+| `offline_access` | Stay logged in (refresh tokens) |
+| `User.Read` | Identify signed-in user |
 
-> ⚠️ **Important**: Do NOT use "Application permissions" — Microsoft To Do does not support app-only access for personal task lists. You must use Delegated permissions with a signed-in user.
+Click **Grant admin consent**.
 
-### Step 3 — Create a Client Secret
+> ⚠️ Use **Delegated** permissions only — Microsoft To Do blocks app-only (Application) permissions.
 
-1. In your App Registration, go to **Certificates & secrets → Client secrets → New client secret**
-2. Set a description and expiry (24 months recommended)
-3. Copy the **Value** immediately — it will be hidden after you leave the page
+### 3 — Create Client Secret
 
-### Step 4 — Configure in Home Assistant
+**Certificates & secrets → Client secrets → New client secret** — copy the **Value** immediately.
 
-1. **Settings → Devices & Services → Add Integration → Chore Tracker**
-2. Select **Microsoft 365** as the backend
-3. Enter:
-   - **Client ID**: from Step 1
-   - **Tenant ID**: from Step 1
-   - **Client Secret**: from Step 3
-4. You will be redirected to Microsoft's login page — sign in with your Microsoft 365 account
-5. Grant the requested permissions
-6. You will be redirected back to HA
-7. Select which **To Do list** to sync
+### 4 — Configure in HA
 
-### Required Azure Permissions Summary
+1. **Settings → Devices & Services → Add Integration → Chore Tracker → Microsoft 365**
+2. Enter Client ID, Tenant ID, Client Secret
+3. Click **Open Microsoft login** → sign in → grant permissions → tab closes
+4. Choose which To Do list to sync
 
-| Permission | Type | Why |
+---
+
+## 📱 iPhone Push Notifications
+
+Tasks overdue by 2+ days automatically send a push notification to your iPhone.
+
+**Configure in:** Settings → Devices & Services → Chore Tracker → **Configure**
+
+| Option | Default | Description |
 |---|---|---|
-| `Tasks.ReadWrite` | Delegated | Create, read, update, delete To Do tasks |
-| `offline_access` | Delegated | Refresh tokens (stay logged in) |
-| `User.Read` | Delegated | Identify the signed-in user |
+| Reminders enabled | Yes | Toggle all reminders on/off |
+| Days overdue before reminder | 2 | How many days past due before push fires |
+| iPhone notify service | `notify.mobile_app_marcs_iphone_14` | HA notify service for your phone |
 
-### Sync Behaviour
-
-- Tasks created in HA card → pushed to Microsoft To Do
-- Tasks created in Microsoft To Do (or Outlook, Teams) → appear in HA card
-- Completing a task in either place syncs to the other
-- Sync runs every 15 minutes (configurable in Options)
+To find your iPhone's service name: **Developer Tools → Services → search `notify.mobile_app`**
 
 ---
 
 ## 📱 NFC Tag Setup (iPhone)
 
-### Prerequisites
-- iPhone 7 or later
-- [Home Assistant Companion App](https://apps.apple.com/app/home-assistant/id1099568401)
-
-### Steps
-
-1. **Assign a tag to a task** using the 📱 NFC tab in the dashboard card
-2. **Create an automation** in HA:
+1. Assign an NFC tag in the 📱 NFC tab in the main card
+2. Create an automation:
 
 ```yaml
-alias: "Complete task via NFC"
+alias: "Complete chore via NFC"
 trigger:
   - platform: tag
-    tag_id: "YOUR_NFC_TAG_ID"
+    tag_id: "YOUR_TAG_ID"
 action:
   - service: chore_tracker.complete_by_nfc
     data:
-      nfc_tag_id: "YOUR_NFC_TAG_ID"
-      completed_by: "{{ trigger.device_id }}"
+      nfc_tag_id: "YOUR_TAG_ID"
+      completed_by: "Marc"
 ```
 
-3. **Write the tag** in HA Companion App → **☰ → NFC Tags → Write tag**
-4. **Tap to complete** — the task is marked done and the next recurrence is scheduled
+3. Write tag in HA Companion App → NFC Tags → Write tag
 
 ---
 
-## 🃏 Dashboard Card
+## 🔁 Recurrence Reference
 
-```yaml
-type: custom:chore-tracker-card
-title: Household Chores   # optional, default: "Chore Tracker"
-show_header: true          # optional, default: true
-show_stats: true           # optional, default: true
-```
-
----
-
-## 🔁 Recurrence Examples
-
-| What you want | `recurrence` | Extra fields |
+| Recurrence | `recurrence` value | Extra fields |
 |---|---|---|
 | Every day | `daily` | — |
+| Every week | `weekly` | — |
 | Every Monday | `day_of_week` | `recurrence_day: 0` |
-| Every Friday | `day_of_week` | `recurrence_day: 4` |
 | 3rd Wednesday | `day_of_month_position` | `recurrence_day: 2`, `recurrence_week_position: 3` |
 | Last Friday | `day_of_month_position` | `recurrence_day: 4`, `recurrence_week_position: -1` |
-| Every 2 weeks | `bi_weekly` | — |
-| Monthly | `monthly` | — |
 
-Day numbers: **0=Monday, 1=Tuesday, 2=Wednesday, 3=Thursday, 4=Friday, 5=Saturday, 6=Sunday**
+Day numbers: 0=Mon, 1=Tue, 2=Wed, 3=Thu, 4=Fri, 5=Sat, 6=Sun
 
 ---
 
 ## 🔧 Services
 
-| Service | Key fields |
+| Service | Fields |
 |---|---|
 | `chore_tracker.add_task` | `name`, `category`, `priority`, `due_date`, `recurrence`, `assigned_to` |
-| `chore_tracker.update_task` | `task_id` + any fields above |
-| `chore_tracker.complete_task` | `task_id`, optional `completed_by` |
-| `chore_tracker.complete_by_nfc` | `nfc_tag_id`, optional `completed_by` |
+| `chore_tracker.complete_task` | `task_id`, `completed_by` |
+| `chore_tracker.temp_complete_task` | `task_id`, `completed_by`, `hours` (default 24) |
+| `chore_tracker.update_task` | `task_id` + any add_task fields |
 | `chore_tracker.delete_task` | `task_id` |
 | `chore_tracker.skip_task` | `task_id` |
-| `chore_tracker.snooze_task` | `task_id`, `days` (1–365) |
+| `chore_tracker.snooze_task` | `task_id`, `days` |
+| `chore_tracker.complete_by_nfc` | `nfc_tag_id`, `completed_by` |
 | `chore_tracker.assign_nfc_tag` | `task_id`, `nfc_tag_id` |
-
----
-
-## 📡 Automation Events
-
-| Event | Payload |
-|---|---|
-| `chore_tracker_task_completed` | `task_id`, `name`, `completed_by` |
-| `chore_tracker_task_overdue` | `task_id`, `name` |
-| `chore_tracker_task_due_soon` | `task_id`, `name`, `due_date` |
 
 ---
 
 ## 📄 License
 
-MIT License
+MIT
