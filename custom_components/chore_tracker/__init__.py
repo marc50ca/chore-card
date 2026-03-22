@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import pathlib
 from datetime import date, timedelta
 
 import voluptuous as vol
@@ -32,13 +33,92 @@ _LOGGER = logging.getLogger(__name__)
 
 CONFIG_SCHEMA = vol.Schema({DOMAIN: vol.Schema({})}, extra=vol.ALLOW_EXTRA)
 
+# JS files live in  custom_components/chore_tracker/frontend/
+# and are served at /chore_tracker/frontend/<filename>
+_FRONTEND_DIR  = pathlib.Path(__file__).parent / "frontend"
+_FRONTEND_URL  = f"/{DOMAIN}/frontend"
+_CARD_FILES    = [
+    "chore-tracker-card.js",
+    "chore-tracker-summary-card.js",
+]
+
+# Class-level flag so we only register once per HA process lifetime
+_frontend_registered: bool = False
+
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     hass.data.setdefault(DOMAIN, {})
+    _register_frontend(hass)
     return True
 
 
+def _register_frontend(hass: HomeAssistant) -> None:
+    """Register static path + Lovelace resources (idempotent)."""
+    global _frontend_registered
+    if _frontend_registered:
+        return
+    _frontend_registered = True
+
+    # Serve the frontend/ directory over HTTP.
+    # The API changed in HA 2024.2: register_static_path (singular) was removed
+    # and replaced with register_static_paths (plural) + StaticPathConfig.
+    # We try the new API first and fall back gracefully.
+    try:
+        from homeassistant.components.http import StaticPathConfig
+        hass.http.register_static_paths([
+            StaticPathConfig(_FRONTEND_URL, str(_FRONTEND_DIR), cache_headers=False)
+        ])
+        _LOGGER.debug("Chore Tracker: registered static path via StaticPathConfig")
+    except (ImportError, AttributeError):
+        try:
+            # Legacy API (HA < 2024.2)
+            hass.http.register_static_path(
+                _FRONTEND_URL, str(_FRONTEND_DIR), cache_headers=False
+            )
+            _LOGGER.debug("Chore Tracker: registered static path via legacy API")
+        except AttributeError as err:
+            _LOGGER.error(
+                "Chore Tracker: could not register static path — "
+                "add resources manually in Settings → Dashboards → Resources: %s", err
+            )
+            return
+
+    _LOGGER.debug("Chore Tracker: serving frontend from %s at %s", _FRONTEND_DIR, _FRONTEND_URL)
+
+    # 2. Auto-register each JS file as a Lovelace resource so users don't need
+    #    to add them manually in Settings → Dashboards → Resources.
+    #    We use lovelace.resources storage directly to avoid the UI dependency.
+    async def _register_resources() -> None:
+        try:
+            from homeassistant.components.lovelace import resources as ll_resources
+            res_store = ll_resources.ResourceStorageCollection(hass)
+            await res_store.async_load()
+            existing_urls = {r["url"] for r in res_store.async_items()}
+
+            for fname in _CARD_FILES:
+                url = f"{_FRONTEND_URL}/{fname}"
+                if url not in existing_urls:
+                    await res_store.async_create_item({
+                        "res_type": "module",
+                        "url":       url,
+                    })
+                    _LOGGER.info("Chore Tracker: auto-registered Lovelace resource %s", url)
+                else:
+                    _LOGGER.debug("Chore Tracker: resource already registered: %s", url)
+        except Exception as err:
+            # Non-fatal — user can add manually if auto-registration fails
+            _LOGGER.warning(
+                "Chore Tracker: could not auto-register Lovelace resources "
+                "(you may need to add them manually): %s", err
+            )
+
+    hass.async_create_task(_register_resources())
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    # Ensure frontend is registered even if async_setup wasn't called
+    _register_frontend(hass)
+
     coordinator = ChoreTrackerCoordinator(hass, entry)
     await coordinator.async_setup()
     await coordinator.async_config_entry_first_refresh()

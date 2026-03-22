@@ -6,61 +6,49 @@ A full-featured HACS integration and Lovelace dashboard card for tracking househ
 
 ## 📦 Installation
 
-### Step 1 — Copy integration files
+### Step 1 — Copy the integration folder
 
-Unzip the package and copy into your HA config directory:
+Unzip the package and copy **one folder** into your HA config directory:
 
 ```
 config/
-├── custom_components/
-│   └── chore_tracker/        ← copy this entire folder
-└── www/
-    └── chore-tracker-card/   ← copy this entire folder
-        ├── chore-tracker-card.js
-        └── chore-tracker-summary-card.js
+└── custom_components/
+    └── chore_tracker/        ← copy this entire folder
 ```
+
+That's it. No `www` folder needed. The dashboard cards are bundled inside the integration and served automatically.
 
 ### Step 2 — Restart Home Assistant (full restart required)
 
-A full restart — not just a reload — is needed so HA registers the integration and sensors.
-
 **Settings → System → Restart → Restart Home Assistant**
 
-Do not skip this. The card will not appear until HA has loaded the integration at least once.
+A full restart — not just a reload — is required. On first boot HA will:
+- Register the integration
+- Serve the card JS files at `/chore_tracker/frontend/`
+- Auto-add both cards as Lovelace resources
 
-### Step 3 — Add Lovelace resources
+### Step 3 — Hard refresh your browser
 
-**Settings → Dashboards → ⋮ menu (top right) → Resources → Add resource**
-
-Add **two** resources, both as type **JavaScript module**:
-
-| URL | Type |
-|-----|------|
-| `/local/chore-tracker-card/chore-tracker-card.js` | JavaScript module |
-| `/local/chore-tracker-card/chore-tracker-summary-card.js` | JavaScript module |
-
-### Step 4 — Hard refresh your browser
-
-After adding resources, the browser must load the new JS files fresh.
+After restart, force the browser to load the new JS:
 
 - **Desktop**: `Ctrl + Shift + R` (Windows/Linux) or `Cmd + Shift + R` (Mac)
-- **Mobile**: Close and reopen the browser tab, or clear site data
-- **HA App**: Force-close the app and reopen
+- **Mobile/HA App**: Force-close and reopen
 
-> ⚠️ **Card not appearing?** This is almost always a caching issue. Try:
-> 1. Hard refresh (above)
-> 2. Check the resource URL is exactly `/local/chore-tracker-card/chore-tracker-card.js`
-> 3. Open browser DevTools → Console tab — look for any red JS errors
-> 4. Confirm the file exists at `config/www/chore-tracker-card/chore-tracker-card.js`
-> 5. If you updated the file, append `?v=2` to the resource URL to force a new cache key
+> ⚠️ **Card not appearing after restart?**
+> 1. Hard refresh first (above) — this fixes 90% of cases
+> 2. Check **Settings → Dashboards → Resources** — you should see two entries for `/chore_tracker/frontend/`
+> 3. If they're missing, add them manually as **JavaScript module**:
+>    - `/chore_tracker/frontend/chore-tracker-card.js`
+>    - `/chore_tracker/frontend/chore-tracker-summary-card.js`
+> 4. Open browser DevTools → Console — any red JS error there identifies the exact problem
 
-### Step 5 — Add the integration
+### Step 4 — Add the integration
 
 **Settings → Devices & Services → Add Integration → search "Chore Tracker"**
 
 Choose **Local** (stores tasks in HA) or **Microsoft 365** (syncs with To Do).
 
-### Step 6 — Add cards to your dashboard
+### Step 5 — Add cards to your dashboard
 
 **Dashboard → Edit → Add card → search "Chore Tracker"**
 
