@@ -1,0 +1,7 @@
+{
+  "name": "Chore Tracker",
+  "description": "Track household chores with recurrence, NFC, Microsoft 365 sync, and iPhone notifications.",
+  "render_readme": true,
+  "homeassistant": "2023.11.0",
+  "category": "integration"
+}

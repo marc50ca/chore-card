@@ -1,0 +1,215 @@
+complete_task:
+  name: Complete Task
+  description: Mark a task as permanently completed.
+  fields:
+    task_id:
+      name: Task ID
+      description: The ID of the task to complete.
+      required: true
+      selector:
+        text:
+    completed_by:
+      name: Completed By
+      description: Username of who completed the task.
+      selector:
+        text:
+
+temp_complete_task:
+  name: Temporarily Complete Task
+  description: Mark a task as done for a number of hours, then auto-reset to pending.
+  fields:
+    task_id:
+      name: Task ID
+      description: The ID of the task.
+      required: true
+      selector:
+        text:
+    completed_by:
+      name: Completed By
+      description: Username of who completed it.
+      selector:
+        text:
+    hours:
+      name: Hours
+      description: Hours until the task resets (1–168, default 24).
+      default: 24
+      selector:
+        number:
+          min: 1
+          max: 168
+          unit_of_measurement: hours
+
+complete_by_nfc:
+  name: Complete Task by NFC
+  description: Complete the task associated with a given NFC tag ID.
+  fields:
+    nfc_tag_id:
+      name: NFC Tag ID
+      description: The NFC tag ID that was scanned.
+      required: true
+      selector:
+        text:
+    completed_by:
+      name: Completed By
+      description: Username of who scanned the tag.
+      selector:
+        text:
+
+add_task:
+  name: Add Task
+  description: Create a new chore or task.
+  fields:
+    name:
+      name: Name
+      description: Task name.
+      required: true
+      selector:
+        text:
+    description:
+      name: Description
+      description: Optional longer description.
+      selector:
+        text:
+    category:
+      name: Category
+      description: "Task category: cleaning, cooking, laundry, shopping, yard, maintenance, pets, childcare, finance, health, other."
+      selector:
+        select:
+          options: [cleaning, cooking, laundry, shopping, yard, maintenance, pets, childcare, finance, health, other]
+    priority:
+      name: Priority
+      description: Task priority.
+      default: medium
+      selector:
+        select:
+          options: [low, medium, high, urgent]
+    due_date:
+      name: Due Date
+      description: Due date in YYYY-MM-DD format.
+      selector:
+        text:
+    recurrence:
+      name: Recurrence
+      description: Repeat schedule.
+      default: none
+      selector:
+        select:
+          options: [none, daily, weekly, bi_weekly, monthly, bi_monthly, yearly, day_of_week, day_of_month_position]
+    recurrence_day:
+      name: Recurrence Day
+      description: Day of week (0=Monday, 6=Sunday).
+      selector:
+        number:
+          min: 0
+          max: 6
+    recurrence_week_position:
+      name: Week Position
+      description: Week position in month (1–4, or -1 for last).
+      selector:
+        number:
+          min: -1
+          max: 4
+    assigned_to:
+      name: Assigned To
+      description: List of HA usernames to assign the task to.
+      selector:
+        object:
+    nfc_tag_id:
+      name: NFC Tag ID
+      description: NFC tag ID to associate with this task.
+      selector:
+        text:
+    notes:
+      name: Notes
+      description: Additional notes.
+      selector:
+        text:
+          multiline: true
+
+update_task:
+  name: Update Task
+  description: Update one or more fields on an existing task.
+  fields:
+    task_id:
+      name: Task ID
+      description: The ID of the task to update.
+      required: true
+      selector:
+        text:
+    name:
+      name: Name
+      selector:
+        text:
+    priority:
+      name: Priority
+      selector:
+        select:
+          options: [low, medium, high, urgent]
+    due_date:
+      name: Due Date
+      selector:
+        text:
+    status:
+      name: Status
+      selector:
+        select:
+          options: [pending, completed, temp_complete]
+
+delete_task:
+  name: Delete Task
+  description: Permanently delete a task.
+  fields:
+    task_id:
+      name: Task ID
+      description: The ID of the task to delete.
+      required: true
+      selector:
+        text:
+
+skip_task:
+  name: Skip Task
+  description: Skip the current occurrence and schedule the next recurrence.
+  fields:
+    task_id:
+      name: Task ID
+      description: The ID of the recurring task to skip.
+      required: true
+      selector:
+        text:
+
+snooze_task:
+  name: Snooze Task
+  description: Delay a task by a number of days.
+  fields:
+    task_id:
+      name: Task ID
+      description: The ID of the task to snooze.
+      required: true
+      selector:
+        text:
+    days:
+      name: Days
+      description: Number of days to snooze.
+      default: 1
+      selector:
+        number:
+          min: 1
+          max: 365
+          unit_of_measurement: days
+
+assign_nfc_tag:
+  name: Assign NFC Tag
+  description: Associate an NFC tag with a task.
+  fields:
+    task_id:
+      name: Task ID
+      description: The ID of the task.
+      required: true
+      selector:
+        text:
+    nfc_tag_id:
+      name: NFC Tag ID
+      description: The NFC tag ID to assign.
+      required: true
+      selector:
+        text:
