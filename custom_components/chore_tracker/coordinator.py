@@ -172,6 +172,22 @@ def _next_position_date(from_date: date, position: int, weekday: int) -> date:
     return nth_weekday_in_month(year, month, position, weekday)
 
 
+def _reset_status(task: dict, today: date) -> str:
+    """Return the status a temp_complete task should revert to after its timer expires.
+
+    Non-recurring tasks whose due date is already in the past go straight back
+    to STATUS_OVERDUE so they don't cycle through pending → overdue on the next
+    _check_overdue_tasks pass (which would re-fire the overdue event).
+    """
+    due = task.get("due_date")
+    if due:
+        if isinstance(due, str):
+            due = date.fromisoformat(due)
+        if due < today and task.get("recurrence", RECURRENCE_NONE) == RECURRENCE_NONE:
+            return STATUS_OVERDUE
+    return STATUS_PENDING
+
+
 class ChoreTrackerCoordinator(DataUpdateCoordinator):
     """Coordinator for Chore Tracker data."""
 
@@ -270,16 +286,16 @@ class ChoreTrackerCoordinator(DataUpdateCoordinator):
                         if reset_at.tzinfo is None:
                             reset_at = reset_at.replace(tzinfo=timezone.utc)
                         if now >= reset_at:
-                            task["status"] = STATUS_PENDING
+                            task["status"] = _reset_status(task, today)
                             task["temp_complete_reset_at"] = None
                             changed = True
                             _LOGGER.debug("Auto-reset temp_complete task: %s", task["name"])
                     except (ValueError, TypeError):
-                        task["status"] = STATUS_PENDING
+                        task["status"] = _reset_status(task, today)
                         changed = True
                 else:
                     # No reset time set — reset immediately
-                    task["status"] = STATUS_PENDING
+                    task["status"] = _reset_status(task, today)
                     changed = True
                 continue  # don't mark temp_complete tasks as overdue
 

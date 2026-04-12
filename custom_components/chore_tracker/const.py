@@ -2,7 +2,7 @@
 
 DOMAIN = "chore_tracker"
 VERSION = "1.1.0"
-CARD_VERSION = "4.2"
+CARD_VERSION = "4.3"
 SUMMARY_CARD_VERSION = "2.2"
 
 # Config flow
